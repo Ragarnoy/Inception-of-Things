@@ -1,0 +1,57 @@
+# The login of a member of the team.
+# Used to customize the name of the VMs.
+A_LOGIN = "ygaude"
+# The current part of the project.
+PART = 1
+
+# The name of the server VM.
+SERVER_NAME = "#{A_LOGIN}S"
+# The name of the server worker VM.
+SERVER_WORKER_NAME = "#{A_LOGIN}SW"
+
+BASE_VM_IP = "192.168.56"
+SERVER_IP = "#{BASE_VM_IP}.110"
+SERVER_WORKER_IP = "#{BASE_VM_IP}.111"
+
+Vagrant.configure(2) do |config|
+    config.vm.box = "ubuntu/jammy64"
+
+    # Configure the Server VM.
+    config.vm.define SERVER_NAME do |control|
+
+        control.vm.provider "virtualbox" do |v|
+            # Set the VM name.
+            v.customize ["modifyvm", :id, "--name", "#{SERVER_NAME}-P#{PART}"]
+            # Disable gui
+            v.gui = false
+            # Config cpu number
+            v.cpus = 2
+            # Config RAM
+            v.memory = 2048
+        end
+        # Set the hostname of the VM.
+        control.vm.hostname = SERVER_NAME
+
+        # Configure the IP address of the VM.
+        print "[#{SERVER_NAME}] Using IP #{SERVER_IP}\n"
+        control.vm.network "private_network", ip: SERVER_IP
+    end
+
+    # Configure the Server Worker VM.
+    config.vm.define SERVER_WORKER_NAME do |control|
+        control.vm.provider "virtualbox" do |v|
+            # Set the VM name.
+            v.customize ["modifyvm", :id, "--name", "#{SERVER_WORKER_NAME}-P#{PART}"]
+            # Config cpu number
+            v.cpus = 2
+            # Config RAM
+            v.memory = 2048
+        end
+        # Set the hostname of the VM.
+        control.vm.hostname = SERVER_WORKER_NAME
+
+        # Configure the IP address of the VM.
+        print "[#{SERVER_WORKER_NAME}] Using IP #{SERVER_WORKER_IP}\n"
+        control.vm.network "private_network", ip: SERVER_WORKER_IP
+    end
+end
