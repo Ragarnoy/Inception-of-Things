@@ -13,6 +13,15 @@ BASE_VM_IP = "192.168.56"
 SERVER_IP = "#{BASE_VM_IP}.110"
 SERVER_WORKER_IP = "#{BASE_VM_IP}.111"
 
+K3S_NODE_TOKEN_FILENAME = "k3s_token"
+
+# Create a file that will hold the k3s token only if it doesn't exist.
+if File.file?(K3S_NODE_TOKEN_FILENAME) == false
+    File.open(K3S_NODE_TOKEN_FILENAME, "w") do | file |
+        file << SecureRandom.hex(32) << "\n"
+    end
+end
+
 Vagrant.configure(2) do |config|
     config.vm.box = "ubuntu/jammy64"
 
@@ -35,6 +44,22 @@ Vagrant.configure(2) do |config|
         # Configure the IP address of the VM.
         print "[#{SERVER_NAME}] Using IP #{SERVER_IP}\n"
         control.vm.network "private_network", ip: SERVER_IP
+
+        # Install K3s in controller mode.
+        control.vm.provision "shell",
+            name: "Install K3s in controller mode",
+            run: "once",
+            path: "https://get.k3s.io/",
+            sha256: "704f918bc8bc56329dce985ee7964cceff3f53d3580beff99ee85d8e7da94638",
+            args: [
+                "server",
+                "--node-name=#{SERVER_NAME}-controller",
+                "--token-file=/vagrant/#{K3S_NODE_TOKEN_FILENAME}",
+                "--bind-address=#{SERVER_IP}",
+                "--https-listen-port=6443",
+                "--tls-san=#{SERVER_IP}",
+                "--node-external-ip=#{SERVER_IP}"
+            ]
     end
 
     # Configure the Server Worker VM.
