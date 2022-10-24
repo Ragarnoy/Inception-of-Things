@@ -16,3 +16,9 @@ or by setting the env variable
 export KUBECONFIG=$(pwd)/kubectl.config.yml
 kubectl ...
 ```
+
+To configure our 3 little apps, do the following with `kubectl`:
+
+```bash
+kubectl apply -f files
+```

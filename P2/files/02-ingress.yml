@@ -1,0 +1,56 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: simple-apps
+  labels:
+    name: simple-apps
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    # ingress.kubernetes.io/protocol: http
+    # traefik.ingress.kubernetes.io/router.entrypoints: web
+
+spec:
+  # This should be the correct way from the documentation to specify the default backend when no rules matches
+  # but traefik seems to have bad time handling `rules` & `defaultBackend` together:
+  #
+  # > If none of the hosts or paths match the HTTP request in the Ingress objects, the traffic is routed to your default backend.
+  # >
+  # > https://kubernetes.io/docs/concepts/services-networking/ingress/#default-backend
+  #
+  # defaultBackend:
+  #   service:
+  #     name: app3-service
+  #     port:
+  #       number: 80
+
+  rules:
+    - host: app1.com
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: app1-service
+                port:
+                  name: web
+    - host: app2.com
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: app2-service
+                port:
+                  name: web
+    - http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: app3-service
+                port:
+                  name: web
