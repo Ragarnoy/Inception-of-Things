@@ -1,0 +1,86 @@
+---
+- name: Install K3D
+  hosts: all
+  connection: local
+  vars:
+    k3d_version: v5.4.6
+    k3d_download_url: https://github.com/k3d-io/k3d/releases/download/v5.4.6/k3d-linux-amd64
+    k3d_checksum: sha256:8075d40c74c97d2642f15f535cb48d6d6e82df143f528833a193d87caac6a176
+
+    kubectl_version: v1.25.3
+    # Obtain with
+    # `wget -q -O - "https://dl.k8s.io/{{ kubectl_version }}/bin/linux/amd64/kubectl.sha256"`
+    kubectl_checksum: sha256:f57e568495c377407485d3eadc27cda25310694ef4ffc480eeea81dea2b60624
+
+    docker_keyring_path: /usr/share/keyrings/docker-archive-keyring.gpg
+
+  tasks:
+    - name: Config Docker APT repo
+      block:
+        - name: Install Docker APT-key
+          ansible.builtin.get_url:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            dest: "{{ docker_keyring_path }}.armored"
+            mode: 0o644
+            owner: root
+            group: root
+          become: true
+          register: download_apt_key
+
+        - name: Dearmor Docker APT-key
+          ansible.builtin.command: gpg --batch --yes --dearmor -o {{ docker_keyring_path }} {{ docker_keyring_path }}.armored
+          become: true
+          when: download_apt_key.changed
+
+        - name: Add Docker Apt repo
+          ansible.builtin.apt_repository:
+            repo: deb [signed-by={{ docker_keyring_path }}] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable
+            state: present
+            filename: docker
+            update_cache: true
+          become: true
+
+    - name: Install kubectl
+      ansible.builtin.get_url:
+        url: https://dl.k8s.io/release/{{ kubectl_version }}/bin/linux/amd64/kubectl
+        checksum: "{{ kubectl_checksum }}"
+        dest: /usr/local/bin/kubectl
+        owner: root
+        group: root
+        mode: 0o755
+      become: true
+
+    - name: Install requirement for K3D
+      ansible.builtin.package:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+      become: true
+
+    - name: Add vagrant to docker's group
+      ansible.builtin.user:
+        append: true
+        groups:
+          - docker
+        user: vagrant
+      become: true
+
+    - name: Install K3D
+      ansible.builtin.get_url:
+        url: "{{ k3d_download_url }}"
+        checksum: "{{ k3d_checksum }}"
+        dest: /usr/local/bin/k3d
+        mode: 0o755
+        owner: root
+        group: root
+      become: true
+
+  post_tasks:
+    - name: Ensure docker service is started
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+      become: true
