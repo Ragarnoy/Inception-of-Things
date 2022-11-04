@@ -78,5 +78,18 @@ Vagrant.configure(2) do |config|
         # Configure the IP address of the VM.
         print "[#{SERVER_WORKER_NAME}] Using IP #{SERVER_WORKER_IP}\n"
         control.vm.network "private_network", ip: SERVER_WORKER_IP
+
+        # Install K3s in agent mode.
+        control.vm.provision "shell",
+            name: "Install K3s in agent mode",
+            run: "once",
+            path: "https://get.k3s.io/",
+            sha256: "704f918bc8bc56329dce985ee7964cceff3f53d3580beff99ee85d8e7da94638",
+            args: [
+                "agent",
+                "--server=https://#{SERVER_IP}:6443",
+                "--node-name=#{SERVER_WORKER_NAME}-agent",
+                "--token-file=/vagrant/#{K3S_NODE_TOKEN_FILENAME}"
+            ]
     end
 end
