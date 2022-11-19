@@ -84,3 +84,26 @@
         state: started
         enabled: true
       become: true
+
+- name: Create & Configure a K3d cluster
+  hosts: all
+  connection: local
+  vars:
+    cluster_name: ft-kube
+    kubeconfig_file: /vagrant/kubectl.config.yml
+  tasks:
+    - name: Create the k3d cluster {{ cluster_name }}
+      ansible.builtin.command: k3d cluster create --api-port {{ server_ip }} ft-kube
+      register: k3d_create_cluster
+      changed_when: k3d_create_cluster.stdout.find("Cluster '{}' created successfully!".format(cluster_name)) != -1
+      # We consider that the command have failed when the error is not that the cluster already exist.
+      failed_when:
+        - k3d_create_cluster.rc != 0
+        - k3d_create_cluster.stderr.find("Failed to create cluster '{}' because a cluster with that name already exists".format(cluster_name)) == -1
+
+    - name: Retrieve Kubectl configuration
+      ansible.builtin.shell:
+        cmd: >
+          k3d kubeconfig get {{ cluster_name }}
+          | tee {{ kubeconfig_file }}
+        creates: "{{ kubeconfig_file }}"

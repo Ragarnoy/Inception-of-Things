@@ -54,5 +54,8 @@ Vagrant.configure(2) do |config|
         ansible.playbook = "play_k3d.yml"
         ansible.install = false
         ansible.version = "[core #{ANSIBLE_CORE_VERSION}]"
+        ansible.raw_arguments = [
+            "--extra-vars", "server_ip=#{SERVER_IP}"
+        ]
     end
 end
