@@ -85,6 +85,9 @@
         enabled: true
       become: true
 
+# FIXME: The latter playbook should be executed in a new context because
+# When we install `docker` and add the group `docker` to the vagrant user
+# We should logout to take into account the new group and don't have permissions denied.
 - name: Create & Configure a K3d cluster
   hosts: all
   connection: local
@@ -93,7 +96,7 @@
     kubeconfig_file: /vagrant/kubectl.config.yml
   tasks:
     - name: Create the k3d cluster {{ cluster_name }}
-      ansible.builtin.command: k3d cluster create --api-port {{ server_ip }} ft-kube
+      ansible.builtin.command: k3d cluster create --api-port {{ server_ip }}:5443 ft-kube
       register: k3d_create_cluster
       changed_when: k3d_create_cluster.stdout.find("Cluster '{}' created successfully!".format(cluster_name)) != -1
       # We consider that the command have failed when the error is not that the cluster already exist.
@@ -107,3 +110,32 @@
           k3d kubeconfig get {{ cluster_name }}
           | tee {{ kubeconfig_file }}
         creates: "{{ kubeconfig_file }}"
+
+- name: Configure argo-cd
+  hosts: all
+  connection: local
+  tasks:
+    - name: Install kubernetes pip package
+      ansible.builtin.pip:
+        name: kubernetes
+        version: 25.3.0
+        state: present
+      become: true
+
+    - name: Download argo-cd k8s config file
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/argoproj/argo-cd/v2.5.1/manifests/install.yaml
+        dest: /vagrant/files/01-argo-cd-install.yml
+        mode: 0o644
+        checksum: sha256:ce1008310c4796a0e7c1a0d9f9918bd9b875b5273ed18deffc8a19ddf9879da0
+
+    - name: Apply namespaces
+      kubernetes.core.k8s:
+        apply: true
+        src: 00-namespaces.yml
+
+    - name: Apply argo cd
+      kubernetes.core.k8s:
+        apply: true
+        namespace: argo-cd
+        src: 01-argo-cd-install.yml
