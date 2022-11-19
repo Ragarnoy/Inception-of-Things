@@ -34,8 +34,8 @@ Vagrant.configure(2) do |config|
     config.vm.provision "shell",
         name: "Install K3s in controller mode",
         run: "once",
-        path: "https://get.k3s.io/",
-        sha256: "704f918bc8bc56329dce985ee7964cceff3f53d3580beff99ee85d8e7da94638",
+        path: "https://raw.githubusercontent.com/k3s-io/k3s/v1.25.4%2Bk3s1/install.sh",
+        sha256: "3f51c04045932cdaa9a7e222130a1744b72f5c3bdd668aa829663a2e578c195a",
         args: [
             "server",
             "--node-name=#{SERVER_NAME}-controller",
