@@ -2,4 +2,4 @@
 .vscode
 k3s_token
 kubectl.config.yml
-/P3/files/01-argo-cd-install.yml
+/P3/files/01-argocd-install.yml

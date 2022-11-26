@@ -96,13 +96,22 @@
     kubeconfig_file: /vagrant/kubectl.config.yml
   tasks:
     - name: Create the k3d cluster {{ cluster_name }}
-      ansible.builtin.command: k3d cluster create --api-port {{ server_ip }}:5443 ft-kube
+      ansible.builtin.command: k3d cluster create --api-port {{ server_ip }}:5443 -p 8080:80@loadbalancer -p 8443:443@loadbalancer ft-kube
       register: k3d_create_cluster
       changed_when: k3d_create_cluster.stdout.find("Cluster '{}' created successfully!".format(cluster_name)) != -1
       # We consider that the command have failed when the error is not that the cluster already exist.
       failed_when:
         - k3d_create_cluster.rc != 0
         - k3d_create_cluster.stderr.find("Failed to create cluster '{}' because a cluster with that name already exists".format(cluster_name)) == -1
+
+    - name: Configure bash env
+      ansible.builtin.lineinfile:
+        line: "{{ item }}"
+        dest: ~/.bashrc
+        mode: 0o644
+      loop:
+        - source <(k3d completion bash)
+        - source <(kubectl completion bash)
 
     - name: Retrieve Kubectl configuration
       ansible.builtin.shell:
@@ -125,7 +134,7 @@
     - name: Download argo-cd k8s config file
       ansible.builtin.get_url:
         url: https://raw.githubusercontent.com/argoproj/argo-cd/v2.5.1/manifests/install.yaml
-        dest: /vagrant/files/01-argo-cd-install.yml
+        dest: /vagrant/files/01-argocd-install.yml
         mode: 0o644
         checksum: sha256:ce1008310c4796a0e7c1a0d9f9918bd9b875b5273ed18deffc8a19ddf9879da0
 
@@ -138,4 +147,4 @@
       kubernetes.core.k8s:
         apply: true
         namespace: argo-cd
-        src: 01-argo-cd-install.yml
+        src: 01-argocd-install.yml
