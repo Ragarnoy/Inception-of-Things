@@ -1,0 +1,11 @@
+[Unit]
+Description=Just a basic port-forward to argo-cd
+After=network.target docker.service docker.socket
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/kubectl port-forward --address=0.0.0.0 --namespace argo-cd service/argocd-server 9443:https
+
+[Install]
+WantedBy=multi-user.target
+Alias=argocd-port-forward
