@@ -154,7 +154,7 @@
     - name: Apply argo cd
       kubernetes.core.k8s:
         apply: true
-        namespace: argo-cd
+        namespace: argocd
         src: 01-argocd-install.yml
 
     - name: Copy system unit to port-forward argocd
@@ -166,16 +166,27 @@
       notify: Restart argocd port-forward system
 
   post_tasks:
+    - name: Wait for argocd server Deployment to be ready
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        name: argocd-server
+        wait_condition:
+          type: "Available"
+          status: true
+        wait: true
+        wait_timeout: 60
+        wait_sleep: 5
+        namespace: argocd
+
     - name: Wait for argocd server pod to be ready
       kubernetes.core.k8s_info:
         kind: Pod
         label_selectors:
           - app.kubernetes.io/name = argocd-server
         wait: true
-        wait_timeout: 30
+        wait_timeout: 60
         wait_sleep: 5
-        namespace: argo-cd
-      register: argocd_server_pod
+        namespace: argocd
 
     - name: Start argocd port forward
       ansible.builtin.systemd:
@@ -183,3 +194,47 @@
         state: started
         scope: user
         enabled: true
+
+- name: Install argocd CLI
+  hosts: all
+  connection: local
+  vars:
+    argocd_cli_version: 2.5.4
+    argocd_cli_dl_link: https://github.com/argoproj/argo-cd/releases/download/v{{ argocd_cli_version }}/argocd-linux-amd64
+    argocd_cli_checksum: sha256:22e907ee6f9c287eb00627febe378a0f38fef4daf39159c4cc75f719c55c5698
+  tasks:
+    - name: Download argocd CLI
+      ansible.builtin.get_url:
+        url: "{{ argocd_cli_dl_link }}"
+        checksum: "{{ argocd_cli_checksum }}"
+        dest: /usr/local/bin/argocd
+        mode: 0o555
+      become: true
+
+    - name: Add auto-complete
+      ansible.builtin.lineinfile:
+        line: source <(argocd completion bash)
+        dest: ~/.bashrc
+        mode: 0o644
+
+    - name: Get argocd admin password
+      kubernetes.core.k8s_info:
+        namespace: argocd
+        kind: Secret
+        name: argocd-initial-admin-secret
+      register: argocd_admin_passwd
+      until: argocd_admin_passwd.resources | length > 0
+      retries: 10
+      delay: 5
+
+    - name: Debug argocd admin resources
+      ansible.builtin.debug:
+        var: argocd_admin_passwd.resources | map(attribute='data.password') | map('b64decode') | list
+
+    - name: Login with argocd
+      ansible.builtin.command: >-
+        argocd login {{ server_ip }}:9443
+          --insecure
+          --username admin
+          --password "{{ argocd_admin_passwd.resources[0].data.password | b64decode }}"
+      changed_when: true

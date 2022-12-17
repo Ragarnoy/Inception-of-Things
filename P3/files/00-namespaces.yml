@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: argo-cd
+  name: argocd
 
 ---
 apiVersion: v1
