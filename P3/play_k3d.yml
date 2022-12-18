@@ -123,6 +123,14 @@
 - name: Configure argo-cd
   hosts: all
   connection: local
+  handlers:
+    - name: Restart argocd port-forward system
+      ansible.builtin.systemd:
+        name: argocd-forward
+        state: restarted
+        scope: user
+        daemon_reload: true
+
   tasks:
     - name: Install kubernetes pip package
       ansible.builtin.pip:
@@ -148,3 +156,30 @@
         apply: true
         namespace: argo-cd
         src: 01-argocd-install.yml
+
+    - name: Copy system unit to port-forward argocd
+      ansible.builtin.copy:
+        src: argocd-forward.service
+        dest: /etc/systemd/user/argocd-forward.service
+        mode: 0o644
+      become: true
+      notify: Restart argocd port-forward system
+
+  post_tasks:
+    - name: Wait for argocd server pod to be ready
+      kubernetes.core.k8s_info:
+        kind: Pod
+        label_selectors:
+          - app.kubernetes.io/name = argocd-server
+        wait: true
+        wait_timeout: 30
+        wait_sleep: 5
+        namespace: argo-cd
+      register: argocd_server_pod
+
+    - name: Start argocd port forward
+      ansible.builtin.systemd:
+        name: argocd-forward
+        state: started
+        scope: user
+        enabled: true
