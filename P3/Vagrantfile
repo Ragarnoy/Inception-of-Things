@@ -46,7 +46,8 @@ Vagrant.configure(2) do |config|
                 curl \
                 git \
                 lib{ssl,ffi}-dev
-            python3 -m pip install ansible==#{ANSIBLE_PACKAGE_VERSION}
+            python3 -m pip install ansible==#{ANSIBLE_PACKAGE_VERSION} ansible-core==#{ANSIBLE_CORE_VERSION}
+
         SHELL
 
     # Install requirement for K3D.
