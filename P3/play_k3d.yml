@@ -155,7 +155,10 @@
       kubernetes.core.k8s:
         apply: true
         namespace: argocd
-        src: 01-argocd-install.yml
+        src: "{{ item }}"
+      loop:
+        - 01-argocd-install.yml
+        - 03-wil42-argocd.yml
 
     - name: Copy system unit to port-forward argocd
       ansible.builtin.copy:
