@@ -96,7 +96,13 @@
     kubeconfig_file: /vagrant/kubectl.config.yml
   tasks:
     - name: Create the k3d cluster {{ cluster_name }}
-      ansible.builtin.command: k3d cluster create --api-port {{ server_ip }}:5443 -p 8080:80@loadbalancer -p 8443:443@loadbalancer -p 8888:8888@loadbalancer ft-kube
+      ansible.builtin.command: >-
+        k3d cluster create
+        --api-port {{ server_ip }}:5443
+        -p 8080:80@loadbalancer
+        -p 8443:443@loadbalancer
+        -p 8888:8888@loadbalancer
+        ft-kube
       register: k3d_create_cluster
       changed_when: k3d_create_cluster.stdout.find("Cluster '{}' created successfully!".format(cluster_name)) != -1
       # We consider that the command have failed when the error is not that the cluster already exist.
