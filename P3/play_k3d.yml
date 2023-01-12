@@ -158,6 +158,7 @@
         src: "{{ item }}"
       loop:
         - 01-argocd-install.yml
+        - 01-argocd-cm.yml
         - 03-wil42-argocd.yml
 
     - name: Copy system unit to port-forward argocd
