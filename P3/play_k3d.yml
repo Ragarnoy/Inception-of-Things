@@ -167,6 +167,11 @@
         - 01-argocd-cm.yml
         - 03-wil42-argocd.yml
 
+    - name: Allow vagrant'service to run after last session is closed
+      ansible.builtin.command: loginctl enable-linger vagrant
+      changed_when: false
+      become: true
+
     - name: Copy system unit to port-forward argocd
       ansible.builtin.copy:
         src: argocd-forward.service

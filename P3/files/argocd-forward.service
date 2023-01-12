@@ -5,6 +5,8 @@ After=network.target docker.service docker.socket
 [Service]
 Type=simple
 ExecStart=/usr/local/bin/kubectl port-forward --address=0.0.0.0 --namespace argocd service/argocd-server 9443:https
+Restart=on-failure
+RestartSec=10s
 
 [Install]
 WantedBy=multi-user.target
