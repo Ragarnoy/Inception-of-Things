@@ -15,31 +15,6 @@
     docker_keyring_path: /usr/share/keyrings/docker-archive-keyring.gpg
 
   tasks:
-    - name: Config Docker APT repo
-      block:
-        - name: Install Docker APT-key
-          ansible.builtin.get_url:
-            url: https://download.docker.com/linux/ubuntu/gpg
-            dest: "{{ docker_keyring_path }}.armored"
-            mode: 0o644
-            owner: root
-            group: root
-          become: true
-          register: download_apt_key
-
-        - name: Dearmor Docker APT-key
-          ansible.builtin.command: gpg --batch --yes --dearmor -o {{ docker_keyring_path }} {{ docker_keyring_path }}.armored
-          become: true
-          when: download_apt_key.changed
-
-        - name: Add Docker Apt repo
-          ansible.builtin.apt_repository:
-            repo: deb [signed-by={{ docker_keyring_path }}] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable
-            state: present
-            filename: docker
-            update_cache: true
-          become: true
-
     - name: Install kubectl
       ansible.builtin.get_url:
         url: https://dl.k8s.io/release/{{ kubectl_version }}/bin/linux/amd64/kubectl
@@ -85,9 +60,6 @@
         enabled: true
       become: true
 
-# FIXME: The latter playbook should be executed in a new context because
-# When we install `docker` and add the group `docker` to the vagrant user
-# We should logout to take into account the new group and don't have permissions denied.
 - name: Create & Configure a K3d cluster
   hosts: all
   connection: local
