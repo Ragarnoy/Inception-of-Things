@@ -60,9 +60,6 @@
         enabled: true
       become: true
 
-# FIXME: The latter playbook should be executed in a new context because
-# When we install `docker` and add the group `docker` to the vagrant user
-# We should logout to take into account the new group and don't have permissions denied.
 - name: Create & Configure a K3d cluster
   hosts: all
   connection: local
